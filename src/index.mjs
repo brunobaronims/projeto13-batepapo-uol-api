@@ -34,4 +34,9 @@ app.post('/participants', async (req, res) => {
   return res.status(201).send('');
 });
 
+app.get('/participants', async (req, res) => {
+  const list = await uolDb.collection('users').find().toArray();
+  return res.send(list);
+})
+
 app.listen(5000);
