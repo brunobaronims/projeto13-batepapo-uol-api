@@ -2,21 +2,32 @@ import Joi from "joi";
 
 export const userSchema = Joi.object({
   name: Joi.string()
-  .alphanum()
-  .required()
-  .messages({
-    'string.base': 'Nome inválido',
-    'string.alphanum': 'Nome deve conter apenas caracteres alfanuméricos',
-    'any.required': 'Insira um nome'
-  })
+    .required()
+    .messages({
+      'string.base': 'Nome inválido',
+      'any.required': 'Insira um nome'
+    })
 });
 
 export const messageSchema = Joi.object({
   to: Joi.string()
-  .alphanum()
-  .required(),
+    .required()
+    .messages({
+      'string.base': 'Nome inválido',
+      'any.required': 'Insira um nome'
+    }),
   text: Joi.string()
-  .alphanum()
-  .required(),
+    .required()
+    .messages({
+      'string.base': 'Mensagem inválida',
+      'any.required': 'Insira uma mensagem'
+    }),
   type: Joi.string()
+    .valid('message', 'private_message')
+    .required()
+    .messages({
+      'string.base': 'Tipos válidos: "message" ou "private_message"',
+      'string.valid': 'Tipos válidos: "message" ou "private_message"',
+      'any.required': 'Escolha um tipo de mensagem'
+    })
 });
