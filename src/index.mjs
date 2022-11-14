@@ -3,6 +3,7 @@ import cors from 'cors';
 import { MongoClient } from 'mongodb';
 import { userSchema, messageSchema } from './helpers/validation.mjs';
 import dayjs from 'dayjs';
+import { stripHtml } from 'string-strip-html';
 
 const mongoClient = new MongoClient('mongodb://localhost:27017');
 await mongoClient.connect();
@@ -15,6 +16,7 @@ app.use(cors());
 
 app.post('/participants', async (req, res) => {
   const data = await req.body;
+  const name = stripHtml(data.name).result;
 
   try {
     await userSchema.validateAsync(data);
@@ -24,14 +26,14 @@ app.post('/participants', async (req, res) => {
 
   const nameIsRegistered = await uolDb
     .collection('users')
-    .findOne({ name: data.name });
+    .findOne({ name: name });
   if (nameIsRegistered)
     return res.status(409).send('Nome de usuário já cadastrado');
 
   uolDb
     .collection('users')
     .insertOne({
-      name: data.name,
+      name: name,
       lastStatus: Date.now()
     });
   return res.status(201).send('');
@@ -46,7 +48,7 @@ app.get('/participants', async (req, res) => {
 
 app.post('/messages', async (req, res) => {
   const data = await req.body;
-  const user = req.headers.user;
+  const user = stripHtml(req.headers.user).result;
   const date = Date(Date.now());
 
   try {
@@ -65,9 +67,9 @@ app.post('/messages', async (req, res) => {
     .collection('messages')
     .insertOne({
       from: user,
-      to: data.to,
-      text: data.text,
-      type: data.type,
+      to: stripHtml(data.to).result,
+      text: stripHtml(data.text).result,
+      type: stripHtml(data.type).result,
       time: dayjs(date).format('HH:mm:ss')
     })
 
