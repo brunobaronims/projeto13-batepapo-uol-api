@@ -24,7 +24,7 @@ app.post('/participants', async (req, res) => {
 
   const nameIsRegistered = await uolDb
     .collection('users')
-    .findOne({ name: data });
+    .findOne({ name: data.name });
   if (nameIsRegistered)
     return res.status(409).send('Nome de usuário já cadastrado');
 
@@ -32,7 +32,7 @@ app.post('/participants', async (req, res) => {
     .collection('users')
     .insertOne({
       name: data.name,
-      lastStatus: Date(Date.now())
+      lastStatus: Date.now()
     });
   return res.status(201).send('');
 });
@@ -76,19 +76,72 @@ app.post('/messages', async (req, res) => {
 
 app.get('/messages', async (req, res) => {
   const user = req.headers.user;
-  const messages = await uolDb.collection('messages').find({
-    $or: [
-      {
-        from: user
-      },
-      {
-        to: user
-      }
-    ]
-  }).toArray();
+  const messages = await uolDb
+    .collection('messages')
+    .find({
+      $or: [
+        { from: user },
+        { to: user },
+        { type: 'message' },
+        { type: 'status' }
+      ]
+    }).toArray();
   if (req.query.limit)
     return res.send(messages.slice(0, req.query.limit));
   return res.send(messages);
 });
+
+app.post('/status', async (req, res) => {
+  const user = req.headers.user;
+
+  const userExists = await uolDb
+    .collection('users')
+    .findOne({ name: user });
+  if (!userExists)
+    return res.status(404).send('');
+
+  await uolDb
+    .collection('users')
+    .updateOne(
+      { name: user },
+      { $set: { lastStatus: Date.now() } }
+    )
+
+  return res.status(200).send('');
+});
+
+setInterval(async () => {
+  const currentTime = Date.now();
+
+  try {
+    const inactiveUsers = await uolDb
+      .collection('users')
+      .find(
+        { lastStatus: { $lt: currentTime - 10000 } }
+      )
+      .toArray();
+    inactiveUsers.forEach(user => {
+      uolDb
+        .collection('users')
+        .deleteOne(
+          { name: user.name }
+        );
+      
+      uolDb
+        .collection('messages')
+        .insertOne(
+          {
+            from: user.name,
+            to: 'Todos',
+            text: 'sai da sala...',
+            type: 'status',
+            time: dayjs(Date(currentTime)).format('HH:mm:ss')
+          }
+        )
+    })
+  } catch (e) {
+    throw new Error(e);
+  }
+}, '15000')
 
 app.listen(5000);
