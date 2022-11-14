@@ -16,7 +16,7 @@ export const messageSchema = Joi.object({
     .trim()
     .messages({
       'string.base': 'Nome inválido',
-      'any.required': 'Insira o nome do remetente'
+      'any.required': 'Insira o nome do destinatário'
     }),
   text: Joi.string()
     .required()

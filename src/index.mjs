@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 import { userSchema, messageSchema } from './helpers/validation.mjs';
 import dayjs from 'dayjs';
 import { stripHtml } from 'string-strip-html';
@@ -93,6 +93,25 @@ app.get('/messages', async (req, res) => {
   return res.send(messages);
 });
 
+app.delete('/messages/:id', async (req, res) => {
+  const user = req.headers.user;
+  const messageId = ObjectId(req.params.id);
+
+  const message = await uolDb
+    .collection('messages')
+    .findOne({ _id: messageId });
+
+  if (!message)
+    return res.status(404).send('Mensagem não existe');
+  else if (user != message.from)
+    return res.status(401).send('Remetente inválido');
+
+  await uolDb
+    .collection('messages')
+    .deleteOne({ _id: messageId });
+  return res.status(200).send('');
+});
+
 app.post('/status', async (req, res) => {
   const user = req.headers.user;
 
@@ -128,7 +147,7 @@ setInterval(async () => {
         .deleteOne(
           { name: user.name }
         );
-      
+
       uolDb
         .collection('messages')
         .insertOne(
