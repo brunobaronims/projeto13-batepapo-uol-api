@@ -112,6 +112,49 @@ app.delete('/messages/:id', async (req, res) => {
   return res.status(200).send('');
 });
 
+app.put('/messages/:id', async (req, res) => {
+  const data = await req.body;
+  const user = stripHtml(req.headers.user).result;
+  const messageId = ObjectId(req.params.id);
+
+  try {
+    await messageSchema.validateAsync(data);
+  } catch (e) {
+    return res.status(422).send(e.message);
+  }
+
+  const userExists = await uolDb
+    .collection('users')
+    .findOne({ name: user });
+  if (!userExists)
+    return res.status(409).send('Usuário não existe');
+
+  const message = await uolDb
+    .collection('messages')
+    .findOne({ _id: messageId });
+
+  if (!message)
+    return res.status(404).send('Mensagem não existe');
+  else if (user != message.from)
+    return res.status(401).send('Remetente inválido');
+
+  await uolDb
+    .collection('messages')
+    .updateOne(
+      { _id: messageId },
+      {
+        $set: {
+          from: user,
+          to: stripHtml(data.to).result,
+          text: stripHtml(data.text).result,
+          type: stripHtml(data.type).result
+        }
+      }
+    )
+
+  return res.status(200).send('');
+})
+
 app.post('/status', async (req, res) => {
   const user = req.headers.user;
 
